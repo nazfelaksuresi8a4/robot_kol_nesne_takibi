@@ -41,7 +41,7 @@ def delta_analysis():
 
             mask_1 = cv.inRange(hsv_frame,lower_red,upper_red)
             mask_2 = cv.inRange(hsv_frame,lower_red_2,upper_red_2)
-            
+
             mask = mask_1 + mask_2
 
             mask = cv.medianBlur(mask,7)
@@ -84,11 +84,11 @@ def delta_analysis():
 
         Nterm = Nterm - 1
 
-        out =  {'servo_goto' : measurement_dict[min(measurement_dict)],
-                'min_delta' : measurement_dict.get(measurement_dict[min(measurement_dict)]),
-                'max_delta' : measurement_dict.get(measurement_dict[max(measurement_dict)]),
+        out =  {'servo_goto' : min(measurement_dict, key=measurement_dict.get),
+                'min_delta' : min(measurement_dict.values()),
+                'max_delta' : max(measurement_dict.values()),
                 'delta_deg_range' : delta_deg_range_array}
-            
+
         measurement_dict.clear()
 
         return out
@@ -99,10 +99,9 @@ def delta_analysis():
 while True:
      if Nterm <= 0:
           break
-     
+
      outs = delta_analysis()
 
      #akışın temel amaç ve tanımı : servo her seferinde (min(delta_deg_range)) e gidecek ve onun min ve max arasından tekrar bir tarama yapacak bunu Nterm < 0 olana kadar yapacak kaba kuvvet taraması ile nesneye en yakın konuma x eksenini ortalayacak.
 
      print(outs)
-
