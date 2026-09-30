@@ -11,96 +11,73 @@ lower_red_2 = np.array([170,120,70])
 upper_red_2 = np.array([180,255,255])
 
 Nterm = 50
+delta_target_x,delta_target_y = 0,0
+
 
 capture = cv.VideoCapture(0)
 
 tolerance = 15
 
 n = 180
-measurement_dict = {}
 
 
 def delta_analysis():
-    global Nterm
+    global Nterm,tolerance
 
     for servo_x in range(0,n):
             ret,frame = capture.read()
 
-            h,w,c = frame.shape
+            if  ret:
+                h,w,c = frame.shape
 
-            y_center,x_center = h // 2, w // 2
+                y_center,x_center = h // 2, w // 2
 
-            frame = cv.circle(frame,(w//2,h//2),50,(0,255,0),1)
+                frame = cv.circle(frame,(w//2,h//2),1,(0,255,0),1)
 
-            if not ret:
-                print('kamera okunamadi')
+                hsv_frame = cv.cvtColor(frame,cv.COLOR_BGR2HSV)
 
-            hsv_frame = cv.cvtColor(frame,cv.COLOR_BGR2HSV)
+                mask_1 = cv.inRange(hsv_frame,lower_red,upper_red)
+                mask_2 = cv.inRange(hsv_frame,lower_red_2,upper_red_2)
+                
+                mask = mask_1 + mask_2
 
-            mask_1 = cv.inRange(hsv_frame,lower_red,upper_red)
-            mask_2 = cv.inRange(hsv_frame,lower_red_2,upper_red_2)
-            
-            mask = mask_1 + mask_2
+                mask = cv.medianBlur(mask,7)
 
-            mask = cv.medianBlur(mask,7)
+                mask = cv.morphologyEx(mask,cv.MORPH_OPEN,kernel)
+                mask = cv.morphologyEx(mask,cv.MORPH_CLOSE,kernel)
 
-            mask = cv.morphologyEx(mask,cv.MORPH_OPEN,kernel)
-            mask = cv.morphologyEx(mask,cv.MORPH_CLOSE,kernel)
+                contours,_ = cv.findContours(mask,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
 
-            contours,_ = cv.findContours(mask,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+                masked_image = cv.bitwise_and(frame,frame,mask=mask) 
 
-            masked_image = cv.bitwise_and(frame,frame,mask=mask) 
+                if len(contours) > 0:
+                    largest_contour = max(contours,key=cv.contourArea)
+                    if cv.contourArea(largest_contour) > 400:
+                        x,y,w,h = cv.boundingRect(largest_contour)
 
-            if len(contours) > 0:
-                largest_contour = max(contours,key=cv.contourArea)
-                if cv.contourArea(largest_contour) > 400:
-                    x,y,w,h = cv.boundingRect(largest_contour)
+                        delta_x = x - (x_center)
+                        delta_y = y - (y_center)
 
-                    x_i,y_i = x//2,y//2
+                        if delta_x < 0:
+                             print('sol')
 
-                    delta_x = max(x_center,x+w//2) - min(x_center,x+w//2)
-                    delta_y = max(y_center,y+h//2) - min(y_center,y+h//2)
+                        elif delta_x > 0:
+                             print('sag')
 
-                    target_delta = max(delta_x,delta_y) - min(delta_x,delta_y)
+                        if delta_x > 0 and delta_x < tolerance:
+                             print('kal')
 
-                    measurement_dict[servo_x] = target_delta
 
-                    frame = cv.circle(frame,(x+w//2,y+h//2),3,(255,0,255),5)
+                        print('x : {}  ||  y: {}'.format(delta_x,delta_y))
 
-            cv.imshow('delta analysiws',frame)
-            cv.waitKey(1)
+                        frame = cv.circle(frame,(x+w//2,y+h//2),1,(255,0,255),5)
 
-    if measurement_dict:
-        delta_deg_range_array = []
-        values = list(sorted(measurement_dict.values()))[0:Nterm]
-        inversed = {measurement_dict[key] : key for key in measurement_dict}
+                cv.imshow('delta analysiws',frame)
+                cv.waitKey(1)
 
-        for delta_i in values:
-            value = inversed[delta_i]
 
-            delta_deg_range_array.append(value)
 
-        Nterm = Nterm - 1
-
-        out =  {'servo_goto' : measurement_dict[min(measurement_dict)],
-                'min_delta' : measurement_dict.get(measurement_dict[min(measurement_dict)]),
-                'max_delta' : measurement_dict.get(measurement_dict[max(measurement_dict)]),
-                'delta_deg_range' : delta_deg_range_array}
-            
-        measurement_dict.clear()
-
-        return out
-
-    else:
-         return 'herhangi bir görsel tespit edilemedi!'
 
 while True:
-     if Nterm <= 0:
-          break
-     
-     outs = delta_analysis()
-
-     #akışın temel amaç ve tanımı : servo her seferinde (min(delta_deg_range)) e gidecek ve onun min ve max arasından tekrar bir tarama yapacak bunu Nterm < 0 olana kadar yapacak kaba kuvvet taraması ile nesneye en yakın konuma x eksenini ortalayacak.
-
-     print(outs)
+    outs = delta_analysis()
 
