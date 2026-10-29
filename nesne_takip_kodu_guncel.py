@@ -62,7 +62,6 @@ def closed_loop():
     global capture_2,capture,model
     
     x_tolerance,y_tolerance = 10,10
-    stat_y,stat_x = False,False
     x_servo,y_servo = 0,0
 
     frame_ = Mcapture(capture_2)
@@ -70,6 +69,7 @@ def closed_loop():
 
     for key in coordinates:
         for class_ in coordinates[key]:
+            stat_y,stat_x = False,False
             while True:
                 frame_ = Mcapture(capture_2)
                 coordinates,_ = U(frame_,model)
@@ -82,19 +82,19 @@ def closed_loop():
 
                 dx,dy = dx + 1,dy + 1
 
-                if dx <= 0:
+                if dx < 0:
                     x_servo = -((1 / dx) * 180)
 
-                if dx >= 0:
+                if dx > 0:
                     x_servo = (1/dx) * 180
 
                 if 1 <= dx < x_tolerance:
                     stat_x = True
 
-                if dy <= 0:
+                if dy < 0:
                     y_servo = -((1 / dy) * 180)
 
-                if dy >= 0:
+                if dy > 0:
                     y_servo = (1 / dy) * 180
 
                 if 1 <= dy < y_tolerance:
