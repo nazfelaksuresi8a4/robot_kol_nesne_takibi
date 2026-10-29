@@ -63,6 +63,7 @@ def closed_loop():
     
     x_tolerance,y_tolerance = 10,10
     x_servo,y_servo = 0,0
+    key_index = 0
 
     frame_ = Mcapture(capture_2)
     coordinates,_ = U(frame_,model)
@@ -72,10 +73,27 @@ def closed_loop():
             stat_y,stat_x = False,False
             while True:
                 frame_ = Mcapture(capture_2)
-                coordinates,_ = U(frame_,model)
+                updated_coordinates,_ = U(frame_,model)
+                key_list = list(updated_coordinates.keys())
 
                 H,W,C = frame_.shape
-                Xnesne,Ynesne,Wnesne,Hnesne = coordinates[key][class_]      #ana formüldeki bölme işlemlerini yapmamıza gerek kalmadı. Çünkü yolo zaten nesnenin merkez koordinatları ve büyüklükkerini veriyor. Tekrar 2 ye bölersek sağ ve sol kenarları buluruz.
+
+                if not key in key_list:
+                    if len(key_list) > 0 and key_index < len(key_list):
+                        key = key_list[key_index]
+                        class_ = list(coordinates[key].keys())[0]
+                        
+                        print(class_)
+                        key_index += 1
+
+                    else:
+                        key_index = 0
+                        x_servo,y_servo = 0,0
+                        updated_coordinates,_ = U(frame_,model)
+
+
+                Xnesne,Ynesne,Wnesne,Hnesne = updated_coordinates[key][class_]      #ana formüldeki bölme işlemlerini yapmamıza gerek kalmadı. Çünkü yolo zaten nesnenin merkez koordinatları ve büyüklükkerini veriyor. Tekrar 2 ye bölersek sağ ve sol kenarları buluruz.
+
 
                 dx = (Xnesne) - (W//2)
                 dy = (Ynesne) - (H//2)
@@ -83,36 +101,40 @@ def closed_loop():
                 dx,dy = dx + 1,dy + 1
 
                 if dx < 0:
-                    x_servo = -((1 / dx) * 180)
+                    x_servo -= 1
 
                 if dx > 0:
-                    x_servo = (1/dx) * 180
+                    x_servo += 1
 
                 if 1 <= dx < x_tolerance:
                     stat_x = True
 
-                if dy < 0:
-                    y_servo = -((1 / dy) * 180)
 
-                if dy > 0:
-                    y_servo = (1 / dy) * 180
+                if stat_x:
+                    if dy > 0:
+                        y_servo -= 1
 
-                if 1 <= dy < y_tolerance:
-                    stat_y = True
+                    if dy < 0:
+                        y_servo += 1
 
-                if stat_x and stat_y:
-                    break 
+                    if 1 <= dy < y_tolerance:
+                        stat_y = True 
 
-                else:
-                    print(f'dx : {dx}  || dy: {dy}  || x-servo: {x_servo}  ||  y-servo: {y_servo}  || DXY : {((Xnesne + Ynesne) - ((W//2) + (H//2)))}' )
+                    if stat_x and stat_y:
+                        x_servo,y_servo = 0,0
+                        coordinates,_ = U(frame_,model)
+                    
+                        break 
 
-                    analyzed = cv.rectangle(frame_,(Xnesne - Wnesne//2,Ynesne - Hnesne//2),(Xnesne+Wnesne//2,Ynesne+Hnesne//2),(0,255,0),1)
-                    analyzed = cv.circle(frame_,(Xnesne,Ynesne),10,(255,0,255),4)
-                    analyzed = cv.circle(frame_,(W//2,H//2),10,(0,255,0),4)
+                print(f'dx : {dx}  || dy: {dy}  || x-servo: {x_servo}  ||  y-servo: {y_servo}  || DXY : {((Xnesne + Ynesne) - ((W//2) + (H//2)))}' )
+
+                analyzed = cv.rectangle(frame_,(Xnesne - Wnesne//2,Ynesne - Hnesne//2),(Xnesne+Wnesne//2,Ynesne+Hnesne//2),(0,255,0),1)
+                analyzed = cv.circle(frame_,(Xnesne,Ynesne),10,(255,0,255),4)
+                analyzed = cv.circle(frame_,(W//2,H//2),10,(0,255,0),4)
                    
 
-                    cv.imshow('window',cv.cvtColor(analyzed,cv.COLOR_BGR2RGB))
-                    cv.waitKey(25)
+                cv.imshow('window',cv.cvtColor(analyzed,cv.COLOR_BGR2RGB))
+                cv.waitKey(25)
 
 
 
