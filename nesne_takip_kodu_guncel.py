@@ -68,15 +68,11 @@ def closed_loop():
     frame_ = Mcapture(capture_2)
     coordinates,_ = U(frame_,model)
 
-    print(coordinates)
-
     for key in coordinates:
         for class_ in coordinates[key]:
             while True:
                 frame_ = Mcapture(capture_2)
                 coordinates,_ = U(frame_,model)
-
-                print(frame_)
 
                 H,W,C = frame_.shape
                 Xnesne,Ynesne,Wnesne,Hnesne = coordinates[key][class_]      #ana formüldeki bölme işlemlerini yapmamıza gerek kalmadı. Çünkü yolo zaten nesnenin merkez koordinatları ve büyüklükkerini veriyor. Tekrar 2 ye bölersek sağ ve sol kenarları buluruz.
@@ -86,24 +82,22 @@ def closed_loop():
 
                 dx,dy = dx + 1,dy + 1
 
-                print(W)
-
-                if dx < 0:
+                if dx <= 0:
                     x_servo = -((1 / dx) * 180)
 
-                if dx > 0:
+                if dx >= 0:
                     x_servo = (1/dx) * 180
 
-                if 1 < dx < x_tolerance:
+                if 1 <= dx < x_tolerance:
                     stat_x = True
 
-                if dy < 0:
+                if dy <= 0:
                     y_servo = -((1 / dy) * 180)
 
-                if dy > 0:
+                if dy >= 0:
                     y_servo = (1 / dy) * 180
 
-                if 1 < dy < y_tolerance:
+                if 1 <= dy < y_tolerance:
                     stat_y = True
 
                 if stat_x and stat_y:
@@ -117,7 +111,7 @@ def closed_loop():
                     analyzed = cv.circle(frame_,(W//2,H//2),10,(0,255,0),4)
                    
 
-                    cv.imshow('window',analyzed)
+                    cv.imshow('window',cv.cvtColor(analyzed,cv.COLOR_BGR2RGB))
                     cv.waitKey(25)
 
 
